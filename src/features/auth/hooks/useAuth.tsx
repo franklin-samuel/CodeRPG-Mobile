@@ -4,6 +4,7 @@ import { makeRedirectUri, useAuthRequest } from 'expo-auth-session';
 import { useEffect } from 'react';
 import { getAuthStatusUseCase, logoutUseCase } from '../../../config/di-container';
 import ENV from '../../../config/env';
+import axios from 'axios';
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -12,6 +13,11 @@ const discovery = {
     tokenEndpoint: 'https://github.com/login/oauth/access_token',
 };
 
+const scheme = 'coderpg';
+const redirectUri = makeRedirectUri({
+    scheme,
+});
+
 export function useAuth() {
     const queryClient = useQueryClient();
 
@@ -19,12 +25,31 @@ export function useAuth() {
         {
             clientId: ENV.GITHUB_CLIENT_ID,
             scopes: ['user', 'repo', 'read:org'],
-            redirectUri: makeRedirectUri({
-                scheme: 'coderpg',
-            }),
+            redirectUri,
         },
         discovery
     );
+
+    const loginBackendMutation = useMutation({
+        mutationFn: async (code) => {
+
+            console.log('Enviando para o backend:', {
+                code,
+                redirectUri: redirectUri,
+            })
+
+            const response = await axios.post(`${ENV.API_BASE_URL}/auth/login`, {
+                code,
+            });
+            return response.data;
+        },
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ['authStatus'] });
+        },
+        onError: (error) => {
+            console.error('Erro ao logar no backend:', error);
+        }
+    });
 
     const { data: authStatus, isLoading, refetch } = useQuery({
         queryKey: ['authStatus'],
@@ -42,7 +67,12 @@ export function useAuth() {
 
     useEffect(() => {
         if (response?.type === 'success') {
-            refetch();
+            const { code } = response.params;
+            console.log('Código recebido do GitHub:', code);
+
+            loginBackendMutation.mutate(code);
+        } else if (response?.type === 'error') {
+            console.error('Erro no AuthSession:', response.error);
         }
     }, [response]);
 
@@ -50,16 +80,12 @@ export function useAuth() {
         await promptAsync();
     };
 
-    const logout = async () => {
-        await logoutMutation.mutateAsync();
-    };
-
     return {
         authStatus,
-        isLoading,
+        isLoading: isLoading || loginBackendMutation.isPending,
         isAuthenticated: authStatus?.authenticated ?? false,
         login,
-        logout,
+        logout: () => logoutMutation.mutateAsync(),
         isLoggingOut: logoutMutation.isPending,
     };
 }

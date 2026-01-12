@@ -11,9 +11,9 @@ export default function TabsLayout() {
     useEffect(() => {
         if (!isLoading) {
             if (!isAuthenticated) {
-                router.replace('/(auth)/log-in');
+                router.replace('/auth/log-in');
             } else if (authStatus?.needsOnBoarding) {
-                router.replace('/(auth)/onboarding');
+                router.replace('/auth/onboarding');
             }
         }
     }, [isAuthenticated, isLoading, authStatus]);

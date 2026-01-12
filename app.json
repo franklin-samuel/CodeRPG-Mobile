@@ -3,6 +3,7 @@
     "name": "CodeRPG",
     "slug": "coderpg",
     "version": "1.0.0",
+    "scheme": "coderpg",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",

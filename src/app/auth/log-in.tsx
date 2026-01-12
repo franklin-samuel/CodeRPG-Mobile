@@ -15,7 +15,7 @@ export default function LoginScreen() {
     useEffect(() => {
         if (isAuthenticated && authStatus) {
             if (authStatus.needsOnBoarding) {
-                router.replace('/(auth)/onboarding');
+                router.replace('/auth/onboarding');
             } else {
                 router.replace('/(tabs)');
             }
